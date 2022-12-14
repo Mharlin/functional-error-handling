@@ -1,11 +1,6 @@
 # Exercise
 
-<<<<<<< HEAD
-Repo: github.com/Mharlin/functional-error-handling
-=======
 Repo: github.com/Mharlin/functional-error-handling  
-
->>>>>>> 3b63c04 (Exercise instructions, now with file added)
 Have the `exercise` folder as root when opening the project in IntelliJ
 
 1. Change method signatures so that the intent of the function is clear.  
