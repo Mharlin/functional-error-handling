@@ -1,0 +1,8 @@
+*.iml
+.idea
+.metals
+.bloop
+.bsp
+target/
+build/
+node_modules/

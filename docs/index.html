@@ -1,0 +1,243 @@
+<!doctype html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+  <title>reveal.js</title>
+
+  <link rel="stylesheet" href="dist/reset.css">
+  <link rel="stylesheet" href="dist/reveal.css">
+  <link rel="stylesheet" href="dist/theme/sky.css">
+
+  <!-- Theme used for syntax highlighted code -->
+  <link rel="stylesheet" href="plugin/highlight/monokai.css">
+</head>
+
+<body>
+  <div class="reveal">
+    <div class="slides">
+      <section data-markdown data-separator="^\n---\n$" data-separator-vertical="^\n--\n$">
+        <script type="text/template">
+          ## Functional error handling in Scala
+
+          ---
+
+          # Don't throw
+          
+          notes:
+          Exceptions are not typesafe
+          Exceptions are not composable
+          Exception are not predictable - can be thrown anywhere
+          Use `Try` and type to Either or Option
+
+          ---
+
+          ## for comprehensions
+
+          ```scala 
+          val o1: Option[Int] = Some(1)
+          val o2: Option[Int] = Some(2)
+          ```
+
+          ```scala
+          for {
+            op1 <- o1
+            op2 <- o2
+          } yield op1 + op2
+          ```
+          <!-- .element: class="fragment" -->
+
+          ```scala 
+          o1.flatMap(op1 => o2.map(op2 => op1 + op2))
+          ```
+          <!-- .element: class="fragment" -->
+          
+          notes:
+          for comprehensions aborts on first error  
+          combines effects  
+          uses flatMap in the body and map in the yield  
+          works for everything that supports `flatMap`
+
+          --
+
+          * Expressions in body need to have the same wrapper
+          * Cannot mix `List`, `Option` and `Try`...
+
+          ---
+
+          ## use `map` instead of `.isDefined`
+
+          ```scala
+          val o = Option(1)
+          
+          o.map(_ + 1).getOrElse(0)
+          // Some(2)
+          ```
+
+          ```scala
+          if o.isDefined then o.get + 1
+          else 0
+          ```
+          
+          notes:
+          Works for all functors
+          Risk of using get on None when refactoring
+          
+          ---
+
+          * `Try[T]` Error of type `Throwable`.  
+          * `Option[T]` Failure/not found without error message.  
+          * `Either[L, R]` Error of any type.
+          * `Future[T]` Error of type `Throwable`.
+          * `EitherT[F, L, R]` Error of any type.
+
+          ---
+
+          ## Try/Catch
+          
+          use `Try` instead of `try`. 
+          Returns `Success[T]` or `Failure[Throwable]`. 
+          Can be used in for comprehension
+          
+          notes:
+          To be able to map and pattern match  
+          Can be converted into `Either` and `Option`
+          
+          --
+
+          ## Option
+          
+          ```Scala
+          def getUserById(id: Int): User // What happens if the user is not found
+          def getUserById(id: Int): Option[User] // Clear from signature what the results can be
+          ```
+
+          --
+
+          ## Either
+          
+          * `Either[Error, Result]` Is right biased
+          * The error does not have to inherit from throwable
+          * `Try` and `Option` can be made into Either
+          
+          --
+
+          ### Cats support
+          
+          ```Scala
+          import cats.syntax.all.*
+          
+          val input = "123"
+          val result: Either[NumberFormatException, Int] = 
+            Either.catchOnly[NumberFormatException](input.toInt)
+          ```
+
+          ```Scala
+          val e1 = 5.asRight[String]
+          // e1: Either[String, Int] = Right(value = 5)
+          val e2 = "error".asLeft[Int]
+          // e2: Either[String, Int] = Left(value = "error")
+          ```
+          <!-- .element: class="fragment" -->
+
+          notes:
+          `asRight/asLeft` is good for typing
+
+          ---
+
+          ## Future 
+          
+          * Try to execute as close to the edge as possible
+          * `Eager execution` - Executes as soon as it's in scope
+          
+          notes:
+          Blocks when awaited  
+          Does not block when mapping, flatmapping, filtering 
+
+          --
+
+          ### Future with Either can be messy
+          
+          ```Scala
+          def authenticate(userName: String, password: String): Future[Either[AuthenticationError, User]] = 
+          findUserByName(userName).flatMap({
+            case Right(user) => checkPassword(user, password).flatMap({ 
+              case Right(_) => checkSubscription(user).flatMap({
+                case Right(_) => checkUserStatus(user).map(_.as(user))
+                case Left(err) => Future.Success(Left(err))
+              })
+              case Left(err) => Future.Success(Left(err)) 
+            })
+            case Left(err) => Future.Success(Left(err))
+          }) 
+          ```
+          
+          ---
+
+          ## EitherT
+          
+          `EitherT[F, Error, Result]`  
+
+          The F (effect) can be `List`, `Option`, `Try` or `Future`.
+          
+          Can be created from Option, Either and Future.
+
+          ```Scala
+          val future = EitherT(Future.successful(Right(1))
+          val option = EitherT.fromOption(Option("hello"), "error when None")
+          val either = EitherT.fromEither(Right(1))
+          ```
+
+          --
+          
+          ### `Future` containing an Either.
+          
+          Different IOs can be mixed together in the same for comprehension when wrapped in EitherT
+          
+          ```scala
+          for {
+              user <- EitherT.fromOption(findUserByName(userName), "Not found") // EitherT[Option, String, User]
+              _ <- EitherT.fromEither(checkPassword(user, password)) // EitherT[Option, String, Unit]
+              _ <- EitherT(checkSubscription(user)) // EitherT[Future, String, Unit]
+              _ <- EitherT(checkUserStatus(user)) // EitherT[Future, String, Unit]
+            } yield user
+          ```
+          
+          ---
+
+          ## Exersice
+          github.com/Mharlin/functional-error-handling
+          
+          1. Change method signatures so that the intent of the function is clear.  
+            There should be no need to look at the implementation when you want to use the function.  
+            Return a clear error message to the user.
+            For the moment, leave the execution of the Future in the functions.  
+            
+          2. Move the effect execution to the outer edge.
+            Suggest looking at the cats EitherT documentation for inspiration.
+
+        </script>
+      </section>
+    </div>
+  </div>
+
+  <script src="dist/reveal.js"></script>
+  <script src="plugin/notes/notes.js"></script>
+  <script src="plugin/markdown/markdown.js"></script>
+  <script src="plugin/highlight/highlight.js"></script>
+  <script>
+    // More info about initialization & config:
+    // - https://revealjs.com/initialization/
+    // - https://revealjs.com/config/
+    Reveal.initialize({
+      hash: true,
+
+      // Learn about plugins: https://revealjs.com/plugins/
+      plugins: [RevealMarkdown, RevealHighlight, RevealNotes]
+    });
+  </script>
+</body>
+
+</html>

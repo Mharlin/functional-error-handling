@@ -9,3 +9,6 @@ target/
 .bloop
 project/**/metals.sbt
 .bsp
+
+# Presentation
+node_modules/

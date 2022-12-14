@@ -5,6 +5,8 @@ import scala.concurrent.duration.Duration.apply
 import scala.concurrent.duration.Duration
 import java.time.LocalDate
 
+import cats.syntax.all.*
+
 object ErrorHandling extends App {
   authenticateUser("Susanna", "susanna", "RF")
 
@@ -13,7 +15,7 @@ object ErrorHandling extends App {
     checkPassword(user, password)
     checkLicence(user, LocalDate.now())
     checkUserStatus(user)
-    checkUserBelongsToCompany(user, company)
+    OwnedByOtherTeam.checkUserBelongsToCompany(user, company)
     user
   }
 
@@ -40,7 +42,13 @@ object ErrorHandling extends App {
       else throw new Exception("Licence expired")
     else throw new Exception("Licence does not exist")
   }
-  
+}
+
+case class User(username: String, password: String, isActivated: Boolean)
+case class Licence(username: String, expiryDate: String)
+case class Company(username: String, company: String)
+
+object OwnedByOtherTeam {
   // This method is owned by another team and cannot be changed
   def checkUserBelongsToCompany(user: User, company: String): Unit = {
     val userCompany = Await.result(Database.companies.map(_.find(_.username == user.username)), Duration("5 seconds"))
@@ -50,10 +58,6 @@ object ErrorHandling extends App {
     else throw new IllegalCallerException("User does not belong to company")
   }
 }
-
-case class User(username: String, password: String, isActivated: Boolean)
-case class Licence(username: String, expiryDate: String)
-case class Company(username: String, company: String)
 
 object Database {
   def users = Future(

@@ -84,7 +84,7 @@ result match {
 Cats helpers. Can help guide type inference compared to the Left, Right construct
 
 ```Scala
-import cats.syntax.all._
+import cats.syntax.all.*
 
 val e1 = 5.asRight[String]
 // e1: Either[String, Int] = Right(value = 5)
