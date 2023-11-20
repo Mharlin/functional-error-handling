@@ -7,6 +7,7 @@ import scala.util.Try
 
 class ErrorHandlingTest extends AnyFunSuite with Matchers {
   test("authenticateUser licence expired") {
+    // TODO: Change the assert so that it checks for the correct errror message from the Either
     ErrorHandling.authenticateUser("Magnus", "magnus", "Niovi") shouldBe User("licence expired", "licence expired", true)
   }
 

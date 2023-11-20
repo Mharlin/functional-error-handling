@@ -20,16 +20,372 @@
     <div class="slides">
       <section data-markdown data-separator="^\n---\n$" data-separator-vertical="^\n--\n$">
         <script type="text/template">
-          ## Functional error handling in Scala
+          ## Idiomatic functional Scala
+        </script>
+      </section>
+      <section>
+        <section data-markdown data-noescape>
+          <script type="text/template">
+            #### Mutable state is the new spaghetti code
+            <img alt="Spaghetti code" src="./image/spaghetti.jpg" height="500px" />
+            <br/>
+            <small>
+              <a href="https://www.flickr.com/photos/oskay/2177296503">
+              oskay @ flickr</a>
+            </small>
+          </script>
+        </section>
 
-          ---
+        <section>
+          <pre>
+          <code data-trim data-noescape class="scala" style="max-height:630px; margin-top:-30px; font-size:12px; line-height: normal" >
+            class User {
+                private String name;
 
+                private List<Order> orders;
+
+                public User() { orders = new ArrayList<Order>(); }
+
+                public String getName() { return name; }
+
+                public void setName(String name) { this.name = name; }
+
+                public List<Order> getOrders() { return orders; }
+
+                public void setOrders(List<Order> orders) { this.orders = orders; }
+            }
+
+            class Order {
+                private int id;
+
+                private List<Product> products;
+
+                public Order() { products = new ArrayList<Product>(); }
+
+                public int getId() { return id; }
+
+                public void setId(int id) { this.id = id; }
+
+                public List<Product> getProducts() { return products; }
+
+                public void setProducts(List<Product> products) { this.products = products; }
+            }
+
+            class Product {
+                private int id;
+
+                private String category;
+
+                public int getId() { return id; }
+
+                public void setId(int id) { this.id = id; }
+
+                public String getCategory() { return category; }
+
+                public void setCategory(String category) { this.category = category; }
+            }
+            </code>
+            </pre>
+          </script>
+        </section>
+
+        <section>
+          <pre>
+            <code data-trim data-noescape class="scala" style="font-size:20px">
+              case class<span class="fragment"> User(name: String, orders: Seq[Order])</span>
+              <span class="fragment">case class Order(id: Int, products: Seq[Product])
+              case class Product(id: Int, category: String)</span>
+              <span class="fragment">
+              val product = Product(1, "Fidget spinner")
+              val order = Order(1, Seq(product))
+              val user = User("Magnus", Seq(order))
+              # user: User = User(Magnus, List(
+                             Order(1, List(
+                             Product(1,Fidget spinner)))))
+              </span>
+          </code>
+          </pre>
+          <aside class="notes">
+            Mention Seq and the easy with which you can use it
+          </aside>
+        </section>
+      </section>
+
+      <section>
+        <section data-markdown >
+          <script type="text/template">
+            ## Case classes
+            * Immutable
+            * Concise syntax for value objects
+            * Built-in toString, equals, hash-code, extractor, creator, copy
+          </script>
+        </section>
+
+        <section>
+          <pre>
+            <code data-trim data-noescape class="scala" >
+              case class User(firstName: String, surname: String)
+
+              <span class="fragment">val user = new User</span><span class="fragment">("flatMap", "Oslo")</span>
+              <span class="fragment"># user: User = User("flatMap", "Oslo")</span>
+
+              <span class="fragment">val user = User</span><span class="fragment">.apply("flatMap", "Oslo")</span>
+              <span class="fragment"># user: User = User("flatMap", "Oslo")</span>
+
+              <span class="fragment">val user = User</span><span class="fragment">("flatMap", "Oslo")</span>
+              <span class="fragment"># user: User = User("flatMap", "Oslo")</span>
+
+              <span class="fragment">val user2 = user</span><span class="fragment">.copy(firstName = "Magnus")</span>
+              <span class="fragment"># user2: User = User(Magnus,Oslo)</span>
+            </code>
+          </pre>
+        </section>
+
+        <section data-markdown>
+          <script type="text/template">
+            ## Companion object
+            * Same name as the class
+            * Class can access the private members of the companion
+
+            <pre>
+              <code class="scala" data-trim data-noescape>
+                object User {
+                  def fromString(name: String) = {
+                    val Array(firstName, surname) = name.split(' ')
+                    User(firstName, surname)
+                  }
+                }
+              </code>
+              <code class="scala fragment" data-trim>
+                User.fromString("flatMap Oslo")
+              </code>
+            </pre>
+          </script>
+        </section>
+      </section>
+
+      <section>
+        <section data-markdown >
+          <script type="text/template">
+            ## Pattern matching
+            * Switch on steroids
+            * Expression that match on something
+
+            <img src="./image/matchingshape.jpg" style="border:0; width:500px" />
+
+            <small><a href="https://www.flickr.com/photos/ellasdad/425813314/">
+            Ella's dad @ flickr</a></small>
+          </script>
+        </section>
+
+        <section>
+          <pre>
+            <code data-trim class="scala" data-noescape>
+              case class User(firstName: String, surname: Option[String])
+
+              <span class="fragment">def matchUser(u: User) =</span>
+                <span class="fragment">u match {
+                  <span class="fragment">case User</span><span class="fragment">(fname</span><span class="fragment">, None) => </span>
+                    <span class="fragment">println(s"Got first name: $fname but no surname"))</span>
+                  <span class="fragment">case User</span><span class="fragment">(_</span><span class="fragment">, Some(lName)) => </span>
+                    <span class="fragment">println(s"Got lastname: $lName and ignored first name")</span>
+                }</span>
+            </code>
+          </pre>
+          <aside class="notes">
+            'case' does not mean the same in case class and match case
+          </aside>
+        </section>
+
+        <section>
+          <pre>
+            <code data-trim data-noescape class="scala" >
+              trait Person
+              <span class="fragment">case class Customer(vip: Boolean) <span class="fragment">extends Person</span>
+              case class Employee(jobTitle: String) <span class="fragment">extends Person</span></span>
+              <span class="fragment">case object Nerd extends Person
+              case object User extends Person</span>
+
+              <span class="fragment">def matchUser(p: Person) = p match {
+                case Customer(true) => println("Customer is VIP"))
+                case Customer(false) => println("Customer is not VIP"))
+                </span><span class="fragment">case Nerd => println(s"Great, we got a nerd!")</span>
+                <span class="fragment">case _ => println("all other cases")
+              }</span>
+            </code>
+          </pre>
+        </section>
+
+        <section >
+          Partial functions
+          <pre>
+            <code data-trim data-noescape class="scala" style="max-height:800px">
+            <span class="fragment">Seq(1, "flatMap").map {
+              case i: Int => i 
+              case s: String => s
+            }
+            # Seq[Any] = List(1, flatMap)</span>
+
+            <span class="fragment">Seq(1, "flatMap", true).map {
+              case i: Int => i.toString 
+              case s: String => s
+            }
+            # scala.MatchError: true (of class java.lang.Boolean)</span>
+
+            <span class="fragment">Seq(1, "flatMap", true).collect {
+              case i: Int => i.toString 
+              case s: String => s
+            }
+            # Seq[String] = List(1, flatMap)</span>
+            </code>
+          </pre>
+          <aside class="notes">
+            Partial functions can be combined
+            The order matters, just like in pattern matching
+          </aside>
+        </section>
+      </section>
+            
+      <section>
+        <section data-markdown >
+          <script type="text/template" data-notes="^Note:">
+            ## Functional
+            * Don't iterate and mutate; Transform!
+            * Pass functions to other functions
+
+            <img src="./image/composition.jpg" style="border:0; width:650px" />
+
+Note:
+            * Composition
+          </script>
+        </section>
+
+        <section data-markdown >
+          <script type="text/template" >
+            Function that returns the length of a list of strings
+            <pre>
+              <code data-trim data-noescape class="java fragment" >
+                public static String getLongest(String[] strings) {
+                  String longestString = "";
+                  int maxLength = 0;
+
+                  for (String s : strings) {
+                    if (s.length() > longestString.length()) {
+                      maxLength = s.length();
+                      longestString = s;
+                    }
+                  }
+                  return longestString;
+                }
+              </code>
+              <code data-trim data-noescape class="java fragment" >
+                strings.stream()
+                  .sorted((e1, e2) -> e1.length() > e2.length() ? -1 : 1)
+                  .findFirst();
+              </code>
+              <code data-trim data-noescape class="scala fragment" >
+                def getLongest(strings: Seq[String]) = strings.maxBy(_.length)
+              </code>
+            </pre>
+            <pre>
+            </pre>
+            <pre>
+            </pre>
+          </script>
+        </section>
+
+        <section data-markdown data-noescape>
+          <script type="text/template" data-noescape>
+            ## Map
+            <pre>
+             <code style="max-height:800px" data-trim data-noescape class="scala" >
+               val strings = Seq("Oslo", "flatMap")
+
+               <span class="fragment">def stringLength(s: String) = s.length</span>
+               <span class="fragment"># stringLength: (val s: String) => Int</span>
+
+               <span class="fragment">val sLength = (s: String) => s.length
+               # sLength: String => Int</span>
+
+               <span class="fragment">def map[B](f: (A) ⇒ B): Traversable[B]</span>
+               <span class="fragment">def map[Int](f: (String) ⇒ Int): Traversable[Int]</span>
+
+               <span class="fragment">strings.map(s => s.length)</span>
+               <span class="fragment">strings.map(_.length)</span>
+               <span class="fragment">strings.map(stringLength)</span>
+               <span class="fragment">strings.map(sLength)</span>
+             </code>
+            </pre>
+          </script>
+        </section>
+
+        <section data-markdown >
+          <script type="text/template" >
+            ## Flatten
+            <pre>
+              <code data-trim data-noescape class="scala" >
+                Seq(
+                  Seq("flatMap"), Seq(), Seq("Oslo", "Norge")
+                )<span class="fragment">.flatten</span>
+                <span class="fragment"># Seq[String] = List(flatMap, Oslo, Norge)</span>
+
+                <span class="fragment">Seq(Some("flatMap"), None, Some("Oslo")).flatten</span>
+                <span class="fragment"># Seq[String] = List(flatMap, Oslo)</span>
+              </code>
+            </pre>
+          </script>
+        </section>
+
+        <section data-markdown >
+          <script type="text/template" >
+            ### Get all ordered products
+            <pre>
+              <code data-trim data-noescape class="java" >
+               public List<Product> getProducts(List<Order> orders) {
+                   List<Product> products = new ArrayList<Product>();
+                   for (Order order : orders) {
+                       products.addAll(order.getProducts());
+                   }
+                   return products;
+               }
+              </code>
+              <code data-trim data-noescape class="scala fragment" >
+                def products(orders: Seq[Order]) = 
+                  orders.flatMap(o => o.products)
+              </code>
+            </pre>
+          </script>
+        </section>
+
+        <section>
+          <pre>
+           <code data-trim class="scala" >
+             users.flatMap(u => u.orders.flatMap(o => o.products))
+             # Seq[Product]
+          </code>
+
+          <code data-trim class="scala fragment" >
+             for {
+               user <- users
+               orders <- user.orders
+               products <- orders.products
+             } yield products
+             # Seq[Product]
+             </span>
+          </code>
+          </pre>
+        </section>
+      </section>
+
+
+      <section data-markdown data-separator="^\n---\n$" data-separator-vertical="^\n--\n$">
+        <script type="text/template">
           # Don't throw
           
           notes:
-          Exceptions are not typesafe
-          Exceptions are not composable
-          Exception are not predictable - can be thrown anywhere
+          Exceptions are not typesafe  
+          Exceptions are not composable  
+          Exception are not predictable - can be thrown anywhere  
           Use `Try` and type to Either or Option
 
           ---

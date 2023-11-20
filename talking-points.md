@@ -138,14 +138,8 @@ def authenticate(userName: String, password: String): EitherT[IO, Authentication
 
 ### Idea
 
-Have several validation functions that throw different kind of validation errors.
+Add slides for case classes and pattern matching from scala-workshop.
 
-- Some of them you own and can change
-- Some of them are owned by others and can't be changed
-- Some have Future in them that is executed within the function
+Add slide for the first exercises.
 
-1. Change method signatures so that the intent of the function is clear. There should be no need to look at the implementation when you want to use the function. Return a clear error message to the user.
-  For the moment, leave the execution of the Future in the functions.
-
-2. Move the effect execution to the outer edge.
-  Suggest looking at the cats EitherT documentation for inspiration.
+Add instructions to use Either or EitherT to the exercise. Make it clear that the EitherT is the goal in the end.
